@@ -52,16 +52,6 @@ urllib3==2.6.3
 uvicorn==0.39.0
 wcwidth==0.5.0
 wrapt==2.0.1
-(.venv) D063195@C56WV7L6T0 ai_hackathon_oslo % pip install pypdf
-Collecting pypdf
-  Downloading pypdf-6.6.2-py3-none-any.whl (329 kB)
-     |████████████████████████████████| 329 kB 2.2 MB/s 
-Requirement already satisfied: typing_extensions>=4.0 in ./.venv/lib/python3.9/site-packages (from pypdf) (4.15.0)
-Installing collected packages: pypdf
-Successfully installed pypdf-6.6.2
-WARNING: You are using pip version 21.2.4; however, version 25.3 is available.
-You should consider upgrading via the '/Users/D063195/Desktop/apps/ai_hackathon_oslo/.venv/bin/python3 -m pip install --upgrade pip' command.
-(.venv) D063195@C56WV7L6T0 ai_hackathon_oslo % pip freeze
 aenum==3.1.16
 ai-api-client-sdk==2.6.1
 ai-core-sdk==2.6.2
