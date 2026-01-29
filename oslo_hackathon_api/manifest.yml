@@ -1,0 +1,9 @@
+---
+applications:
+- name: oslo-api
+  memory: 256M
+  instances: 1
+  path: .
+  buildpacks:
+    - python_buildpack
+  command: uvicorn api:app --host 0.0.0.0 --port $PORT
