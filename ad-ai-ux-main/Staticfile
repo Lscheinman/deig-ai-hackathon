@@ -1,0 +1,7 @@
+root: dist
+
+# Optional: SPA support (send all routes to index.html)
+pushstate: enabled
+
+http_headers:
+  Strict-Transport-Security: "max-age=31536000"
