@@ -1,0 +1,83 @@
+agent: agent_jone
+
+principles:
+  - compliance_first
+  - evidence_weighted_reasoning
+  - graph_first_for_relationship_questions
+  - deterministic_ops_only
+  - ui_payload_first
+
+constraints:
+  # Safety/privacy
+  - do_not_infer_private_personal_data
+  - do_not_generate_sensitive_hr_decisions_or_outcomes
+  - do_not_provide_discriminatory_or_protected_class_inferences
+  - do_not_recommend_actions_that_violate_employment_law_or_policy
+
+  # Data integrity / realism
+  - do_not_run_ddl_or_dml_outside_setup
+  - always_apply_row_limits
+  - do_not_hallucinate_node_ids
+  - if_no_match_return_suggestions_not_inventions
+
+defaults:
+  confidence_threshold: 0.7
+  readiness_bias: conservative
+
+  # Graph defaults (hana_ml neighbor expansion)
+  graph_default_relation_depth: 2
+  graph_default_relation_direction: OUTGOING
+  graph_default_limit: 200
+
+  # Table defaults
+  default_limit: 50
+  max_limit: 200
+
+graph_policy:
+  # Allowed deterministic operations (must map 1:1 to engine.execute_plan ops)
+  allowed_ops:
+    - search_nodes
+    - get_node
+    - get_edges_for_node
+    - tasks_for_skill
+    - qualities_for_task
+    - tasks_and_qualities_for_skill
+    - neighbors_vertices
+    - neighbors_subgraph
+    - shortest_path
+    - resolve_and_expand
+
+  # Edge semantics hints (LLM uses this to decide filtering vs graph)
+  edge_types:
+    qualification_requires_task: "Qualification relates to / is required for Task"
+    quality_suits_task: "Personal quality is well suited for Task"
+    qualification_dependency: "Qualification prerequisite for another Qualification"
+
+  node_types:
+    qualification: "Skill/Requirement/Qualification"
+    task: "Work task"
+    quality: "Personal quality"
+
+routing_heuristics:
+  # If question is a simple lookup, prefer table filters
+  prefer_table_filters_when:
+    - "user asks to list or search nodes by keywords"
+    - "user asks for node details by exact node_id"
+    - "user asks for edges for a given node_id with edge_type filter"
+
+  # If question is relationship/path-oriented, prefer graph algorithms
+  prefer_graph_algorithms_when:
+    - "user asks what is connected/related to something"
+    - "user asks tasks for a skill"
+    - "user asks qualities that fit a task"
+    - "user asks multi-hop (skill -> tasks -> qualities)"
+    - "user asks shortest path / dependency chain / how to get from A to B"
+
+response_policy:
+  # Keep outputs UI-friendly and stable
+  include:
+    - "intent"
+    - "op"
+    - "message"
+    - "table or graph payload"
+    - "debug block with op params + limits"

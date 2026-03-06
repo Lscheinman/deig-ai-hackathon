@@ -1,0 +1,310 @@
+{
+    "agent": "agent_jone",
+    "handles": [
+      "hr_capabilities",
+      "hr_graph_search",
+      "hr_node_lookup",
+      "hr_tasks_for_skill",
+      "hr_qualities_for_task",
+      "hr_skill_task_quality_bundle",
+      "hr_neighbors_subgraph",
+      "hr_shortest_path",
+      "fe_personnel_query",
+      "fe_position_status",
+      "fe_readiness_query"
+    ],
+    "delegates_to": {},
+    "ops": {
+      "search_nodes": {
+        "description": "Search nodes by Norwegian text; optional node_type filter.",
+        "params_schema": {
+          "type": "object",
+          "required": ["text_query"],
+          "properties": {
+            "text_query": { "type": "string" },
+            "node_type": { "type": "string", "enum": ["qualification", "task", "quality"] },
+            "limit": { "type": "integer", "minimum": 1, "maximum": 200 }
+          }
+        },
+        "example": {
+          "op": "search_nodes",
+          "params": { "text_query": "matsikkerhet", "node_type": "qualification", "limit": 10 }
+        }
+      },
+  
+      "get_node": {
+        "description": "Fetch a single node by node_id.",
+        "params_schema": {
+          "type": "object",
+          "required": ["node_id"],
+          "properties": {
+            "node_id": { "type": "string" }
+          }
+        },
+        "example": { "op": "get_node", "params": { "node_id": "N0003" } }
+      },
+  
+      "get_edges_for_node": {
+        "description": "Fetch edges where node_id is source/target; optional edge_type filter.",
+        "params_schema": {
+          "type": "object",
+          "required": ["node_id"],
+          "properties": {
+            "node_id": { "type": "string" },
+            "direction": { "type": "string", "enum": ["out", "in", "any"] },
+            "edge_type": { "type": "string" },
+            "limit": { "type": "integer", "minimum": 1, "maximum": 200 }
+          }
+        },
+        "example": {
+          "op": "get_edges_for_node",
+          "params": { "node_id": "N0003", "direction": "out", "edge_type": "qualification_requires_task", "limit": 50 }
+        }
+      },
+  
+      "tasks_for_skill": {
+        "description": "Return tasks (type=task) linked from a qualification node_id.",
+        "params_schema": {
+          "type": "object",
+          "required": ["skill_node_id"],
+          "properties": {
+            "skill_node_id": { "type": "string" },
+            "limit": { "type": "integer", "minimum": 1, "maximum": 200 }
+          }
+        },
+        "example": { "op": "tasks_for_skill", "params": { "skill_node_id": "N0003", "limit": 50 } }
+      },
+  
+      "qualities_for_task": {
+        "description": "Return qualities suited for a given task node_id (quality_suits_task).",
+        "params_schema": {
+          "type": "object",
+          "required": ["task_node_id"],
+          "properties": {
+            "task_node_id": { "type": "string" },
+            "limit": { "type": "integer", "minimum": 1, "maximum": 200 }
+          }
+        },
+        "example": { "op": "qualities_for_task", "params": { "task_node_id": "N0050", "limit": 25 } }
+      },
+  
+      "tasks_and_qualities_for_skill": {
+        "description": "2-hop bundle: skill -> tasks, and for each task -> qualities.",
+        "params_schema": {
+          "type": "object",
+          "required": ["skill_node_id"],
+          "properties": {
+            "skill_node_id": { "type": "string" },
+            "limit_tasks": { "type": "integer", "minimum": 1, "maximum": 200 },
+            "limit_qualities_per_task": { "type": "integer", "minimum": 1, "maximum": 50 }
+          }
+        },
+        "example": {
+          "op": "tasks_and_qualities_for_skill",
+          "params": { "skill_node_id": "N0003", "limit_tasks": 20, "limit_qualities_per_task": 5 }
+        }
+      },
+  
+      "neighbors_subgraph": {
+        "description": "Return vertices + edges in the neighborhood around a start node (hana_ml NeighborsSubgraph).",
+        "params_schema": {
+          "type": "object",
+          "required": ["start_vertex"],
+          "properties": {
+            "start_vertex": { "type": "string" },
+            "lower_bound": { "type": "integer", "minimum": 1, "maximum": 5 },
+            "upper_bound": { "type": "integer", "minimum": 1, "maximum": 5 },
+            "direction": { "type": "string", "enum": ["OUTGOING", "INCOMING", "ANY"] }
+          }
+        },
+        "example": {
+          "op": "neighbors_subgraph",
+          "params": { "start_vertex": "N0003", "lower_bound": 1, "upper_bound": 2, "direction": "OUTGOING" }
+        }
+      },
+  
+      "shortest_path": {
+        "description": "Find shortest path between two nodes (hana_ml ShortestPath).",
+        "params_schema": {
+          "type": "object",
+          "required": ["source", "target"],
+          "properties": {
+            "source": { "type": "string" },
+            "target": { "type": "string" },
+            "direction": { "type": "string", "enum": ["OUTGOING", "INCOMING", "ANY"] },
+            "weight_col": { "type": ["string", "null"] }
+          }
+        },
+        "example": {
+          "op": "shortest_path",
+          "params": { "source": "N0003", "target": "N0060", "direction": "ANY", "weight_col": null }
+        }
+      },
+
+      "nl_search": {
+            "description": "Natural-language search over nodes (keyword expansions + bounded fuzzy knobs). Returns scored candidates.",
+            "params_schema": {
+                "type": "object",
+                "required": ["query"],
+                "properties": {
+                "query": { "type": "string" },
+                "keywords": { "type": "array", "items": { "type": "string" } },
+                "node_type_hint": { "type": ["string", "null"], "enum": ["qualification", "task", "quality", null] },
+                "fuzzy": {
+                    "type": ["object", "null"],
+                    "properties": {
+                    "enabled": { "type": "boolean" },
+                    "threshold": { "type": "number", "minimum": 0.0, "maximum": 9999.0 },
+                    "max_candidates": { "type": "integer", "minimum": 1, "maximum": 200 }
+                    }
+                },
+                "limit": { "type": "integer", "minimum": 1, "maximum": 200 }
+                }
+            },
+            "example": {
+                "op": "nl_search",
+                "params": {
+                "query": "matsikkerhet",
+                "keywords": ["matsikkerhet", "mattrygghet", "hygiene", "HMS", "internkontroll"],
+                "node_type_hint": "qualification",
+                "fuzzy": { "enabled": true, "threshold": 2.5, "max_candidates": 200 },
+                "limit": 25
+                }
+            }
+      },
+
+      "resolve_and_expand": {
+        "description": "Two-step deterministic call: resolve best node via nl_search then expand to related tasks/qualities when unambiguous.",
+        "params_schema": {
+            "type": "object",
+            "required": ["query"],
+            "properties": {
+            "query": { "type": "string" },
+            "keywords": { "type": "array", "items": { "type": "string" } },
+            "node_type_hint": { "type": ["string","null"], "enum": ["qualification","task","quality", null] },
+            "fuzzy": {
+                "type": ["object","null"],
+                "properties": {
+                "enabled": { "type": "boolean" },
+                "threshold": { "type": "number" },
+                "max_candidates": { "type": "integer", "minimum": 1, "maximum": 200 }
+                }
+            },
+            "limit_candidates": { "type": "integer", "minimum": 1, "maximum": 200 },
+            "limit_tasks": { "type": "integer", "minimum": 1, "maximum": 200 },
+            "auto_pick_min_score": { "type": "number" }
+            }
+        }
+      },
+
+      "personnel_for_fe": {
+        "description": "Get all personnel assigned to a Force Element. Returns roster with names, roles, grades, status.",
+        "params_schema": {
+          "type": "object",
+          "required": ["fe_id"],
+          "properties": {
+            "fe_id": { "type": "string", "description": "Force Element ID (e.g., '50000034')" },
+            "include_vacant": { "type": "boolean", "default": false },
+            "limit": { "type": "integer", "minimum": 1, "maximum": 500 }
+          }
+        },
+        "example": {
+          "op": "personnel_for_fe",
+          "params": { "fe_id": "50000034", "limit": 100 }
+        }
+      },
+
+      "fe_for_personnel": {
+        "description": "Get Force Element assignment for a specific person by person_id.",
+        "params_schema": {
+          "type": "object",
+          "required": ["person_id"],
+          "properties": {
+            "person_id": { "type": "string", "description": "Person ID (e.g., 'P_DE_00001')" }
+          }
+        },
+        "example": {
+          "op": "fe_for_personnel",
+          "params": { "person_id": "P_DE_00001" }
+        }
+      },
+
+      "position_status": {
+        "description": "Get position fill status for a Force Element including summary and key billet details.",
+        "params_schema": {
+          "type": "object",
+          "required": ["fe_id"],
+          "properties": {
+            "fe_id": { "type": "string", "description": "Force Element ID" },
+            "include_details": { "type": "boolean", "default": true }
+          }
+        },
+        "example": {
+          "op": "position_status",
+          "params": { "fe_id": "50000034", "include_details": true }
+        }
+      },
+
+      "fe_readiness": {
+        "description": "Get Force Element readiness summary with fill rates, key billet status, and personnel status.",
+        "params_schema": {
+          "type": "object",
+          "properties": {
+            "fe_id": { "type": ["string", "null"], "description": "Optional specific FE ID (if null, returns all)" },
+            "min_fill_rate": { "type": ["number", "null"], "description": "Optional minimum fill rate % filter" },
+            "limit": { "type": "integer", "minimum": 1, "maximum": 200 }
+          }
+        },
+        "example": {
+          "op": "fe_readiness",
+          "params": { "fe_id": null, "min_fill_rate": 75.0, "limit": 50 }
+        }
+      },
+
+      "search_fe_personnel": {
+        "description": "Search personnel across all Force Elements by name, role, grade, or status.",
+        "params_schema": {
+          "type": "object",
+          "properties": {
+            "name_query": { "type": ["string", "null"], "description": "Search by first or last name (partial match)" },
+            "role_type": { "type": ["string", "null"], "description": "Filter by role (e.g., 'Commander', 'XO')" },
+            "military_grade": { "type": ["string", "null"], "description": "Filter by grade (e.g., 'O-6', 'E-9')" },
+            "status": { "type": ["string", "null"], "description": "Filter by status (e.g., 'Present', 'Deployed', 'Leave')" },
+            "limit": { "type": "integer", "minimum": 1, "maximum": 200 }
+          }
+        },
+        "example": {
+          "op": "search_fe_personnel",
+          "params": { "role_type": "Commander", "status": "Present", "limit": 50 }
+        }
+      },
+
+      "fe_personnel_by_competency": {
+        "description": "Find FE personnel with a specific competency/skill (e.g., Project Management, Leadership, Python). Searches across all Force Elements or filtered to a specific FE by ID or name.",
+        "params_schema": {
+          "type": "object",
+          "properties": {
+            "competency_query": { "type": "string", "description": "Competency name or code to search (e.g., 'Project Management', 'COMP_PM', 'Leadership', 'Python')" },
+            "fe_id": { "type": ["string", "null"], "description": "Optional Force Element ID to filter results (e.g., '50000053')" },
+            "fe_name": { "type": ["string", "null"], "description": "Optional Force Element name to filter results (e.g., 'Pėstininkų brigada', 'Infantry Brigade'). Uses fuzzy matching. Prefer this over fe_id when user provides a unit name." },
+            "min_rating": { "type": "number", "minimum": 0, "maximum": 5, "description": "Minimum competency rating (0-5)" },
+            "limit": { "type": "integer", "minimum": 1, "maximum": 200 }
+          },
+          "required": ["competency_query"]
+        },
+        "example": {
+          "op": "fe_personnel_by_competency",
+          "params": { "competency_query": "Leadership", "fe_name": "Pėstininkų brigada", "min_rating": 3.0, "limit": 50 }
+        }
+      }
+
+    },
+    "task_example": {
+      "user": "What tasks should someone with knowledge of food safety do?",
+      "expected": [
+        { "op": "search_nodes", "params": { "text_query": "matsikkerhet", "node_type": "qualification", "limit": 5 } },
+        { "op": "tasks_for_skill", "params": { "skill_node_id": "<node_id_from_search>", "limit": 50 } }
+      ]
+    }
+  }
+  
